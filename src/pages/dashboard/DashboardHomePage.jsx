@@ -178,7 +178,7 @@ const DashboardHomePage = () => {
 
   // Filter logic matching the catalog (excluding archived books by default from active overview)
   const filteredBooks = useMemo(() => {
-    let list = Array.isArray(booksData) ? booksData : booksData?.books || [];
+    let list = Array.isArray(booksData) ? booksData : booksData?.items || booksData?.books || [];
 
     // Filter out archived books from active overview unless explicitly requested in search params
     const requestedPublicationStatus = searchParams.get('publication_status');
@@ -256,7 +256,7 @@ const DashboardHomePage = () => {
 
   // Metrics calculation excluding archived books & using real backend/queue approvals
   const metrics = useMemo(() => {
-    const rawBooks = Array.isArray(booksData) ? booksData : booksData?.books || [];
+    const rawBooks = Array.isArray(booksData) ? booksData : booksData?.items || booksData?.books || [];
     const activeBooks = rawBooks.filter(
       (b) =>
         String(b.publication_status || b.publicationStatus).toLowerCase() !== 'archived' &&

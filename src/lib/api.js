@@ -118,7 +118,8 @@ export const logoutAdmin = async () => {
  * @param {Object} [params] - Query parameters (e.g. { page, limit, status })
  */
 export const getAdminBooks = async (params) => {
-  const response = await api.get('/api/admin/books', { params });
+  const queryParams = { limit: 1000, ...params };
+  const response = await api.get('/api/admin/books', { params: queryParams });
   return response.data;
 };
 
@@ -405,7 +406,8 @@ export const resetBookStageStatus = async (bookId, data) => {
  * Retrieve public catalog list with pagination/filters
  */
 export const getPublicBooks = async (params) => {
-  const response = await api.get('/api/public/books', { params });
+  const queryParams = { limit: 1000, ...params };
+  const response = await api.get('/api/public/books', { params: queryParams });
   return response.data;
 };
 

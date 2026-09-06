@@ -16,22 +16,39 @@ const PublicBooksPage = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [langFilter, setLangFilter] = useState('');
   const [page, setPage] = useState(1);
+  const itemsPerPage = 8;
 
   // TanStack Query
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['publicBooksCatalog'],
-    queryFn: () => getPublicBooks(),
+    queryKey: ['publicBooksCatalog', page, search, typeFilter, langFilter],
+    queryFn: () =>
+      getPublicBooks({
+        page,
+        limit: itemsPerPage,
+        search: search.trim() || undefined,
+        work_type: typeFilter || undefined,
+        language: langFilter || undefined,
+      }),
   });
 
-  const filteredBooks = useMemo(() => {
+  const { paginatedBooks, totalPages } = useMemo(() => {
     let list = [];
+    let total = 0;
+
     if (data) {
-      if (Array.isArray(data)) list = data;
-      else if (Array.isArray(data.items)) list = data.items;
-      else if (Array.isArray(data.books)) list = data.books;
+      if (Array.isArray(data)) {
+        list = data;
+        total = data.length;
+      } else if (Array.isArray(data.items)) {
+        list = data.items;
+        total = typeof data.total === 'number' ? data.total : data.items.length;
+      } else if (Array.isArray(data.books)) {
+        list = data.books;
+        total = typeof data.total === 'number' ? data.total : data.books.length;
+      }
     }
 
-    // Filter to published books only
+    // Filter to published books only if status field exists
     list = list.filter(
       (b) =>
         !b.publication_status ||
@@ -39,53 +56,18 @@ const PublicBooksPage = () => {
         String(b.publicationStatus).toLowerCase() === 'published'
     );
 
-    // Search keyword matching title, author, description, keywords, or slug
-    if (search.trim()) {
-      const q = search.toLowerCase().trim();
-      list = list.filter(
-        (b) =>
-          (b.title && b.title.toLowerCase().includes(q)) ||
-          (b.author && b.author.toLowerCase().includes(q)) ||
-          (b.description && b.description.toLowerCase().includes(q)) ||
-          (b.keywords && String(b.keywords).toLowerCase().includes(q)) ||
-          (b.slug && b.slug.toLowerCase().includes(q))
-      );
+    // If backend returns all items (unpaginated/mock fallback), do client-side slice
+    let finalBooks = list;
+    if (Array.isArray(data) && list.length > itemsPerPage) {
+      const start = (page - 1) * itemsPerPage;
+      finalBooks = list.slice(start, start + itemsPerPage);
     }
 
-    // Genre / Work Type filter
-    if (typeFilter) {
-      const tf = typeFilter.toLowerCase();
-      list = list.filter((b) => {
-        const wt = String(b.work_type || b.genre || b.category || '').toLowerCase();
-        return wt.includes(tf) || tf.includes(wt);
-      });
-    }
+    const calculatedTotalPages = Math.ceil(total / itemsPerPage) || 1;
+    return { paginatedBooks: finalBooks, totalPages: calculatedTotalPages };
+  }, [data, page, itemsPerPage]);
 
-    // Language filter (e.g. 'en' for English, 'fr' for French, 'es' for Spanish, 'la' for Latin)
-    if (langFilter) {
-      const lf = langFilter.toLowerCase();
-      list = list.filter((b) => {
-        const lang = String(b.language || 'en').toLowerCase();
-        if (lf === 'en') return lang === 'en' || lang === 'english';
-        if (lf === 'fr') return lang === 'fr' || lang === 'french';
-        if (lf === 'es') return lang === 'es' || lang === 'spanish';
-        if (lf === 'la') return lang === 'la' || lang === 'latin';
-        return lang === lf || lang.includes(lf);
-      });
-    }
-
-    return list;
-  }, [data, search, typeFilter, langFilter]);
-
-  // Paginated elements
-  const itemsPerPage = 8;
-  const totalPages = Math.ceil(filteredBooks.length / itemsPerPage) || 1;
   const currentPage = Math.min(page, totalPages);
-
-  const paginatedBooks = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredBooks.slice(start, start + itemsPerPage);
-  }, [filteredBooks, currentPage]);
 
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > totalPages) return;

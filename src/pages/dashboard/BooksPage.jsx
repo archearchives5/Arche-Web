@@ -97,7 +97,7 @@ const BooksPage = () => {
 
   // URL-driven and Search-driven Filtering
   const filteredBooks = useMemo(() => {
-    let list = Array.isArray(data) ? data : data?.books || [];
+    let list = Array.isArray(data) ? data : data?.items || data?.books || [];
 
     // Exclude archived books by default unless publication_status=archived or current_stage=archived is explicitly requested
     const requestedPublicationStatus = searchParams.get('publication_status');
